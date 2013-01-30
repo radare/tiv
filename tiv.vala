@@ -2,16 +2,18 @@
 // TODO: enhace 16color dithering
 // TODO: enhace asciiart mode
 using Gdk;
+using Posix;
 using Linux;
 
 string screen;
-bool fix_width = false;
-bool fix_height = false;
 static string[] files;
 static bool gotoxy00;
 static bool clearscr;
+static bool dump = false;
 private bool asciiart = false;
 private bool dither16 = false;
+static bool fix_width = false;
+static bool fix_height = false;
 private bool greyscale = false;
 private bool interactive = false;
 private int brightness = 0;
@@ -24,7 +26,7 @@ private static void newln() {
 }
 
 private static void flush() {
-	stdout.printf (screen);
+	GLib.stdout.printf (screen);
 	screen = "";
 }
 
@@ -51,7 +53,6 @@ private static int reduce8 (int r, int g, int b) {
 		{ 0xfb,0x3d,0xf8 }, // pink
 		{ 0x10,0xf0,0xf0 }, // turqoise
 		{ 0xf0,0xf0,0xf0 }, // white
-		//{ 0xc7,0xc7,0xc7 }, // white
 	};
 	int colors_len = colors.length[0];
 	int select = 0;
@@ -126,7 +127,7 @@ private void wsz(out int w, out int h) {
 		h = size;
 	} else {
 		winsize win;
-		ioctl (1, Termios.TIOCGWINSZ, out win);
+		Linux.ioctl (1, Termios.TIOCGWINSZ, out win);
 		w = win.ws_col;
 		h = win.ws_row-1;
 	}
@@ -135,6 +136,8 @@ private void wsz(out int w, out int h) {
 int main(string[] args) {
 	files = {""};
 	const OptionEntry[] options = {
+		{ "dump", 'd', 0, OptionArg.NONE, ref dump,
+			"dump pixels", null },
 		{ "interactive", 'i', 0, OptionArg.NONE, ref interactive,
 			"run in interactive mode", null },
 		{ "size", 's', 0, OptionArg.INT, ref size,
@@ -159,22 +162,22 @@ int main(string[] args) {
 		{ null }
 	}; 
 	if (args.length<2) {
-		stderr.printf ("Usage: timg [file.jpg]\n");
+		GLib.stderr.printf ("Usage: tiv [file.jpg]\n");
 		return 1;
 	}
 	try {
-		var opt = new OptionContext("timg");
-		opt.set_help_enabled(true);
-		opt.add_main_entries(options, null);
-		opt.parse(ref args);
+		var opt = new OptionContext ("tiv");
+		opt.set_help_enabled (true);
+		opt.add_main_entries (options, null);
+		opt.parse (ref args);
 	} catch (GLib.Error e) {
-		stderr.printf("Error: %s\n", e.message);
-		stderr.printf("Run '%s --help' to see a full list of available "+
+		GLib.stderr.printf ("Error: %s\n", e.message);
+		GLib.stderr.printf ("Run '%s --help' to see a full list of available "+
 				"options\n", args[0]);
 		return 1;
 	} 
 	if (files[0] == "") {
-		stderr.printf ("Missing argument\n");
+		GLib.stderr.printf ("Missing argument\n");
 		return 1;
 	}
 	string file = files[0];
@@ -186,19 +189,15 @@ int main(string[] args) {
 		var p = new Gdk.Pixbuf.from_file (file);
 		int w = p.get_width ();
 		int h = p.get_height ();
-
 		int columns = 80;
 		int rows = 60;
 
-		if (!fix_width && !fix_height) {
+		if (!fix_width && !fix_height)
 			fix_height = true; // defaults
-		}
-		if (fix_width) {
+		if (fix_width)
 			columns = rows = tw;
-		}
-		if (fix_height) {
+		if (fix_height)
 			columns = rows = th*2;
-		}
 		if (columns <2) columns = 80;
 		if (w>h) {
 			double ratio = w/h;
@@ -215,114 +214,125 @@ int main(string[] args) {
 		p = p.scale_simple (w, h, InterpType.BILINEAR);
 		weak uint8[] pixels = p.get_pixels ();
 /*
-		stdout.printf ("rowstride : %d\n", p.get_rowstride ());
-		stdout.printf ("width : %d\n", p.get_width ());
-		stdout.printf ("bps : %d\n", p.get_bits_per_sample ());
-		stdout.printf ("chans : %d\n", p.get_n_channels ());
+		GLib.stdout.printf ("rowstride : %d\n", p.get_rowstride ());
+		GLib.stdout.printf ("width : %d\n", p.get_width ());
+		GLib.stdout.printf ("bps : %d\n", p.get_bits_per_sample ());
+		GLib.stdout.printf ("chans : %d\n", p.get_n_channels ());
 		var cs = p.get_colorspace (); // only RGB wtf
 */
-
 		int chans = p.get_n_channels ();
 		int stride = p.get_rowstride ();
-		do {
-			clrscr ();
-			for (int y = 0; y<h; y+=2) {
+		if (dump) {
+			GLib.stderr.printf ("%d %d\n", w, h);
+			for (int y = 0; y<h; y++) {
 				int _ = y * stride;
-				int _2 = (y+1) * stride;
 				for (int i=0; i<w; i++) {
-					int r = pixels[(i*chans)+_];
-					int g = pixels[(i*chans)+_+1];
-					int b = pixels[(i*chans)+_+2];
-					if (brightness != 0) {
-						r += brightness;
-						g += brightness;
-						b += brightness;
-						if (r<0) r = 0; if (r>255) r= 255;
-						if (g<0) g = 0; if (g>255) g= 255;
-						if (b<0) b = 0; if (b>255) b= 255;
-					}
-					if (asciiart) {
-						string pal = " `.-:+*%$#";
-						float q = (r + g + b)/3;
-						q /= (float) (255f/pal.length);
-						int idx = (int)q;
-						if (idx>=pal.length) idx = pal.length-1;
-						screen += "%c".printf (pal.get(idx));
-						continue;
-					}
-					int p_r, p_g, p_b;
-					int n_r, n_g, n_b;
-					if (i>0) {
-						p_r = pixels[((i-1)*chans)+_];
-						p_g = pixels[((i-1)*chans)+_+1];
-						p_b = pixels[((i-1)*chans)+_+2];
-					} else {
-						p_r = p_g = p_b = 0;
-					}
-					if (i+1<w) {
-						n_r = pixels[((1+i)*chans)+_];
-						n_g = pixels[((1+i)*chans)+_+1];
-						n_b = pixels[((1+i)*chans)+_+2];
-					} else {
-						n_r = n_g = n_b = 0;
-					}
-					if (brightness != 0) {
-						n_r += brightness;
-						n_g += brightness;
-						n_b += brightness;
-						if (n_r<0) r = 0; if (n_r>255) n_r= 255;
-						if (n_g<0) g = 0; if (n_g>255) n_g= 255;
-						if (n_b<0) b = 0; if (n_b>255) n_b= 255;
-						p_r += brightness;
-						p_g += brightness;
-						p_b += brightness;
-						if (p_r<0) r = 0; if (p_r>255) p_r= 255;
-						if (p_g<0) g = 0; if (p_g>255) p_g= 255;
-						if (p_b<0) b = 0; if (p_b>255) p_b= 255;
-					}
-					n_r /= 32; n_g /= 32; n_b /= 32;
-					p_r /= 32; p_g /= 32; p_b /= 32;
-					if (y+1==h) {
-						rgb (false, r, g, b);
-						rgb (true, r, g, b);
-						screen += ".";
-					} else {
-						int r2 = pixels[(i*chans)+_2];
-						int g2 = pixels[(i*chans)+_2+1];
-						int b2 = pixels[(i*chans)+_2+2];
-						rgb (false, r2, g2, b2);
-						rgb (true, r-20, g-20, b-20);
-						/*
-						   p x n
-						     2
-						*/
-						r/=32; g/=32; b/=32;
-						r2/=32; g2/=32; b2/=32;
-							string ch = ".";
-							if (p_r == r2 && p_g == g2 && p_b == b2 && (r != p_r && g != p_g && b != p_b )) {
-								ch = "\\";
-							} else if ((r==r2 && g==g2 && b==b2) && (p_r != r && n_r != r)) {
-								ch = "|";
-							} else if (r2 == n_r && g2 == n_g && b2 == n_b) {
-								if (r==r2 && g==g2 && b==b2) {
-									if (asciiart) ch = " ";
-									else ch = "\"";
-								} else ch = "/";
-							} else if (p_r == n_r && p_g == n_g && p_b == n_b) {
-								ch = (p_r == r && p_g == g && p_b == b)? "_": "=";
-							} else {
-								ch = (p_r == r2)? "*": ".";
-							}
-							screen += ch;
-					}
+					uint8 r = pixels[(i*chans)+_];
+					uint8 g = pixels[(i*chans)+_+1];
+					uint8 b = pixels[(i*chans)+_+2];
+					uint8[] pixel = {r,g,b}; //(uint8)r, (uint8)g, (uint8)b};
+					Posix.write (1, pixel, 3);
 				}
-				newln();
-				rst();
-				flush ();
 			}
-		} while (false);
+			return 0;
+		}
+		clrscr ();
+		for (int y = 0; y<h; y+=2) {
+			int _ = y * stride;
+			int _2 = (y+1) * stride;
+			for (int i=0; i<w; i++) {
+				int r = pixels[(i*chans)+_];
+				int g = pixels[(i*chans)+_+1];
+				int b = pixels[(i*chans)+_+2];
+				if (brightness != 0) {
+					r += brightness;
+					g += brightness;
+					b += brightness;
+					if (r<0) r = 0; if (r>255) r= 255;
+					if (g<0) g = 0; if (g>255) g= 255;
+					if (b<0) b = 0; if (b>255) b= 255;
+				}
+				if (asciiart) {
+					string pal = " `.-:+*%$#";
+					float q = (r + g + b)/3;
+					q /= (float) (255f/pal.length);
+					int idx = (int)q;
+					if (idx>=pal.length) idx = pal.length-1;
+					screen += "%c".printf (pal.get(idx));
+					continue;
+				}
+				int p_r, p_g, p_b;
+				int n_r, n_g, n_b;
+				if (i>0) {
+					p_r = pixels[((i-1)*chans)+_];
+					p_g = pixels[((i-1)*chans)+_+1];
+					p_b = pixels[((i-1)*chans)+_+2];
+				} else {
+					p_r = p_g = p_b = 0;
+				}
+				if (i+1<w) {
+					n_r = pixels[((1+i)*chans)+_];
+					n_g = pixels[((1+i)*chans)+_+1];
+					n_b = pixels[((1+i)*chans)+_+2];
+				} else {
+					n_r = n_g = n_b = 0;
+				}
+				if (brightness != 0) {
+					n_r += brightness;
+					n_g += brightness;
+					n_b += brightness;
+					if (n_r<0) r = 0; if (n_r>255) n_r= 255;
+					if (n_g<0) g = 0; if (n_g>255) n_g= 255;
+					if (n_b<0) b = 0; if (n_b>255) n_b= 255;
+					p_r += brightness;
+					p_g += brightness;
+					p_b += brightness;
+					if (p_r<0) r = 0; if (p_r>255) p_r= 255;
+					if (p_g<0) g = 0; if (p_g>255) p_g= 255;
+					if (p_b<0) b = 0; if (p_b>255) p_b= 255;
+				}
+				n_r /= 32; n_g /= 32; n_b /= 32;
+				p_r /= 32; p_g /= 32; p_b /= 32;
+				if (y+1==h) {
+					rgb (false, r, g, b);
+					rgb (true, r, g, b);
+					screen += ".";
+				} else {
+					int r2 = pixels[(i*chans)+_2];
+					int g2 = pixels[(i*chans)+_2+1];
+					int b2 = pixels[(i*chans)+_2+2];
+					rgb (false, r2, g2, b2);
+					rgb (true, r-20, g-20, b-20);
+					/*
+					   p x n
+					     2
+					*/
+					r/=32; g/=32; b/=32;
+					r2/=32; g2/=32; b2/=32;
+						string ch = ".";
+						if (p_r == r2 && p_g == g2 && p_b == b2 && (r != p_r && g != p_g && b != p_b )) {
+							ch = "\\";
+						} else if ((r==r2 && g==g2 && b==b2) && (p_r != r && n_r != r)) {
+							ch = "|";
+						} else if (r2 == n_r && g2 == n_g && b2 == n_b) {
+							if (r==r2 && g==g2 && b==b2) {
+								if (asciiart) ch = " ";
+								else ch = "\"";
+							} else ch = "/";
+						} else if (p_r == n_r && p_g == n_g && p_b == n_b) {
+							ch = (p_r == r && p_g == g && p_b == b)? "_": "=";
+						} else {
+							ch = (p_r == r2)? "*": ".";
+						}
+						screen += ch;
+				}
+			}
+			newln();
+			rst();
+			flush ();
+		}
 	} catch (Error e) {
-		stderr.printf ("failed\n");
+		GLib.stderr.printf ("failed\n");
 		return 1;
 	}
 	return 0;

@@ -10,6 +10,17 @@ up and refactorized into a library probably in the future.
 kodim* images under the img/ directory are 24bit test images from kodak and are
 freely available for unrestricted here: http://r0k.us/graphics/kodak/
 
+stiv
+====
+
+Stiv is the suckless reimplementation in plain C, bitmaps should be provided in
+rgb24 form and width/height are passed as arguments:
+
+```
+$ tiv -d foo.img > foo.bitmap 2> foo.resolution
+$ tiv `cat foo.resolution` < foo.bitmap
+```
+
 Author
 ------
 
