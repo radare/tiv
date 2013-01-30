@@ -25,3 +25,7 @@ test:
 	./tiv img/kodim23.jpg
 
 .PHONY: all clean test install uninstall deinstall
+
+osx:
+	valac tiv.vala -X -static --pkg linux --pkg gdk-3.0 --pkg posix -X -c
+	gcc tiv.o /opt/local/lib/libglib-2.0.a /opt/local/lib/libgdk-quartz-2.0.a /opt/local/lib/libintl.a /opt/local/lib/libgobject-2.0.a /opt/local/lib/libiconv.a /opt/local/lib/libffi.a -framework CoreFoundation -framework CoreServices /opt/local/lib/libgdk_pixbuf-2.0.dylib 
