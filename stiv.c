@@ -1,13 +1,14 @@
+/* tiv - terminal image viewer - copyleft 2013 - pancake */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #define XY(b,x,y) ( b+((y)*(w*3))+(x*3) )
 #define ABS(x) (((x)<0)?-(x):(x))
+#define POND(x,y) (ABS((x)) * (y))
 
-static int ponderate (int x, int y) {
-	return ABS (x) * y;
-}
+void (*renderer)(const unsigned char*, const unsigned char *);
 
 static int reduce8 (int r, int g, int b) {
 	int colors_len = 8;
@@ -19,7 +20,7 @@ static int reduce8 (int r, int g, int b) {
 		{ 0xd0,0x10,0x10 }, // red
 		{ 0x10,0xe0,0x10 }, // green
 		{ 0xf7,0xf5,0x3a }, // yellow
-		{ 0x10,0x10,0xe0 }, // blue
+		{ 0x10,0x10,0xf0 }, // blue // XXX
 		{ 0xfb,0x3d,0xf8 }, // pink
 		{ 0x10,0xf0,0xf0 }, // turqoise
 		{ 0xf0,0xf0,0xf0 }, // white
@@ -34,9 +35,9 @@ static int reduce8 (int r, int g, int b) {
 	odistance = -1;
 	for (i = 0; i<colors_len; i++) {
 		int distance =
-			  ponderate (colors[i][0]-r, r)
-			+ ponderate (colors[i][1]-g, g)
-			+ ponderate (colors[i][2]-b, b);
+			  POND (colors[i][0]-r, r)
+			+ POND (colors[i][1]-g, g)
+			+ POND (colors[i][2]-b, b);
 		if (odistance == -1 || distance < odistance) {
 			odistance = distance;
 			select = i;
@@ -44,6 +45,7 @@ static int reduce8 (int r, int g, int b) {
 	}
 	return select;
 }
+
 void
 render_ansi(const unsigned char *c, const unsigned char *d) {
 	int fg = 0;
@@ -93,17 +95,53 @@ render_ascii(const unsigned char *c, const unsigned char *d) {
 	printf ("%c", pal[idx]);
 }
 
+static int dorender (unsigned char *buf, int len, int w, int h) {
+	unsigned char *c, *d;
+	int x, y;
+	for (y=0; y<h; y+=2) {
+		for (x=0; x<w; x++) {
+			c = XY (buf, x, y);
+			d = XY (buf, x, y+1);
+			if (d> (buf+len)) break;
+			renderer (c, d);
+			if (renderer != render_ascii)
+				render_ascii (c, d);
+		}
+		printf ((renderer==render_ascii)?"\n":"\x1b[0m\n");
+	}
+}
+
+static void selectrenderer(const char *arg) {
+	switch (arg[0]) {
+		case 'a':
+			renderer = (arg[1] == 'n')?
+				render_ansi: render_ascii;
+			break;
+		case 'g':
+			renderer = render_greyscale;
+			break;
+		default:
+			renderer = render_rgb;
+			break;
+	}
+}
+
+#ifndef MAIN
 int
-main(int argc, char **argv) {
+main(int argc, const char **argv) {
 	unsigned char *buf, *c, *d;
-	int x, y, w, h, imgsz, readsz;
+	int n, x, y, w, h, imgsz, readsz;
 	if (argc<3) {
 		printf ("stiv . suckless terminal image viewer\n");
-		printf ("Usage: stiv [width] [height] < rgb24\n");
+		printf ("Usage: stiv [width] [height] [ascii|ansi|greyscale|rgb] < rgb24\n");
 		return 1;
 	}
 	w = atoi (argv[1]);
 	h = atoi (argv[2]);
+	if (argc>3) {
+		selectrenderer (argv[3]);
+
+	} else renderer = render_rgb;
 	if (w<1 || h<1) {
 		printf ("Invalid arguments\n");
 		return 1;
@@ -112,22 +150,14 @@ main(int argc, char **argv) {
 	buf = malloc (imgsz);
 	readsz = 0;
 	do {
-		int n = read (0, buf+readsz, imgsz);
+		n = read (0, buf+readsz, imgsz);
 		if (n<1) break;
 		readsz += n;
 	} while (readsz < imgsz);
-	for (y=0; y<h; y+=2) {
-		for (x=0; x<w; x++) {
-			c = XY (buf, x, y);
-			d = XY (buf, x, y+1);
-			if (d> (buf+readsz)) return 0;
-			//render_greyscale (c, d);
-			render_rgb (c, d);
-			//render_ansi (c, d);
-			render_ascii (c, d);
-		}
-		printf ("\x1b[0m\n");
-	}
+
+	dorender (buf, readsz, w, h);
+
 	free (buf);
 	return 0;
 }
+#endif

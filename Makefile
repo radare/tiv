@@ -1,25 +1,30 @@
 VALAC=valac
 DESTDIR?=/
 PREFIX?=usr
+CFLAGS+=-I/opt/local/include -I/usr/local/include
+JPEGLIBS+=-L/opt/local/lib -L/usr/local/lib -ljpeg
 
-all: tiv stiv
+all: tiv stiv stiv-jpeg
 
-tiv: tiv.vala
-	${VALAC} tiv.vala --pkg gdk-3.0 --pkg linux
+stiv-jpeg: stiv-jpeg.o stiv.c
+	${CC} stiv-jpeg.o -o stiv-jpeg ${JPEGLIBS}
 
 stiv: stiv.o
 	${CC} stiv.o -o stiv
 
+tiv: tiv.vala
+	${VALAC} tiv.vala --pkg gdk-3.0 --pkg linux
+
 clean:
-	rm -f tiv stiv
+	rm -f tiv stiv stiv-jpeg stiv-jpeg.static
 
 install:
 	cp tiv ${DESTDIR}/${PREFIX}/bin
-	cp stiv ${DESTDIR}/${PREFIX}/bin
+	cp stiv-jpeg ${DESTDIR}/${PREFIX}/bin
 
 uninstall deinstall:
 	rm -f ${DESTDIR}/${PREFIX}/bin/tiv
-	rm -f ${DESTDIR}/${PREFIX}/bin/stiv
+	rm -f ${DESTDIR}/${PREFIX}/bin/stiv-jpeg
 
 test:
 	./tiv img/kodim23.jpg
@@ -27,5 +32,4 @@ test:
 .PHONY: all clean test install uninstall deinstall
 
 osx:
-	valac tiv.vala -X -static --pkg linux --pkg gdk-3.0 --pkg posix -X -c
-	gcc tiv.o /opt/local/lib/libglib-2.0.a /opt/local/lib/libgdk-quartz-2.0.a /opt/local/lib/libintl.a /opt/local/lib/libgobject-2.0.a /opt/local/lib/libiconv.a /opt/local/lib/libffi.a -framework CoreFoundation -framework CoreServices /opt/local/lib/libgdk_pixbuf-2.0.dylib 
+	${CC} -o stiv-jpeg.static stiv-jpeg.c -I /opt/local/include/ /opt/local/lib/libjpeg.a 

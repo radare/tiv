@@ -17,8 +17,8 @@ Stiv is the suckless reimplementation in plain C, bitmaps should be provided in
 rgb24 form and width/height are passed as arguments:
 
 ```
-$ tiv -d foo.img > foo.bitmap 2> foo.resolution
-$ tiv `cat foo.resolution` < foo.bitmap
+$ tiv -d foo.img > .bitmap 2> .size
+$ stiv `cat .size` < .bitmap
 ```
 
 Author
