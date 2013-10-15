@@ -66,9 +66,15 @@ static int rgb(int r, int g, int b) {
 }
 
 void
-render_rgb(const unsigned char *c, const unsigned char *d) {
+render_256(const unsigned char *c, const unsigned char *d) {
 	printf ("\x1b[%d;5;%dm", 38, rgb (c[0], c[1], c[2]));
 	printf ("\x1b[%d;5;%dm", 48, rgb (d[0], d[1], d[2]));
+}
+
+void
+render_rgb(const unsigned char *c, const unsigned char *d) {
+	printf ("\x1b[38;2;%d;%d;%dm", c[0], c[1], c[2]);
+	printf ("\x1b[48;2;%d;%d;%dm", d[0], d[1], d[2]);
 }
 
 void
@@ -120,6 +126,9 @@ static void selectrenderer(const char *arg) {
 		case 'g':
 			renderer = render_greyscale;
 			break;
+		case '2':
+			renderer = render_256;
+			break;
 		default:
 			renderer = render_rgb;
 			break;
@@ -133,7 +142,7 @@ main(int argc, const char **argv) {
 	int n, x, y, w, h, imgsz, readsz;
 	if (argc<3) {
 		printf ("stiv . suckless terminal image viewer\n");
-		printf ("Usage: stiv [width] [height] [ascii|ansi|greyscale|rgb] < rgb24\n");
+		printf ("Usage: stiv [width] [height] [ascii|ansi|greyscale|256|rgb] < rgb24\n");
 		return 1;
 	}
 	w = atoi (argv[1]);
