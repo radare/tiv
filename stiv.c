@@ -1,4 +1,4 @@
-/* tiv - terminal image viewer - copyleft 2013 - pancake */
+/* tiv - terminal image viewer - copyleft 2013-2015 - pancake */
 
 #include <stdio.h>
 #include <string.h>

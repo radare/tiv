@@ -1,4 +1,4 @@
-/* tiv - terminal image viewer - copyleft 2013 - pancake */
+/* tiv - terminal image viewer - copyleft 2013-2015 - pancake */
 // TODO: enhace 16color dithering
 // TODO: enhace asciiart mode
 using Gdk;
@@ -10,6 +10,7 @@ static string[] files;
 static bool gotoxy00;
 static bool clearscr;
 static bool dump = false;
+private bool truecolor = false;
 private bool asciiart = false;
 private bool dither16 = false;
 static bool fix_width = false;
@@ -96,6 +97,10 @@ private static void rgb(bool fg, int r, int g, int b) {
 	if (asciiart) {
 		return;
 	}
+	if (truecolor) {
+		screen += "\x1b[%d;2;%d;%d;%dm".printf (fg?38:48, r, g, b);
+		return;
+	}
 	if (dither16) {
 		//if (fg == 0) return;
 		int color = reduce8 (r, g, b); // XXX: implement reduce16!!
@@ -103,7 +108,8 @@ private static void rgb(bool fg, int r, int g, int b) {
 		if (r<30 && g<30 &&b<30) fg = !fg; // hack to get darker colors, must use asciiart here
 		screen += "\x1b[%dm".printf (color + (fg?30:40));
 		return;
-	} else if (greyscale) {
+	}
+	if (greyscale) {
 		r = (r + g + b)/3;
 		k = 232 + ((int)(r/10.3));
 	} else {
@@ -112,7 +118,6 @@ private static void rgb(bool fg, int r, int g, int b) {
 		b = (int)(b/42.6);
 		k = 16 + (r*36) + (g*6) + b;
 	}
-
 	screen += "\x1b[%d;5;%dm".printf (fg?48:38, k);
 	//screen += "\x1b[%d;m".printf (33);
 }
@@ -150,6 +155,8 @@ int main(string[] args) {
 			"-255 - 255 value to brightness (default 0)", null },
 		{ "greyscale", 'g', 0, OptionArg.NONE, ref greyscale,
 			"render image using greyscale ansi256", null },
+		{ "truecolor", 't', 0, OptionArg.NONE, ref truecolor,
+			"render using true 24bit RGB colors", null },
 		{ "ansi16", 'a', 0, OptionArg.NONE, ref dither16,
 			"render using ansi16 escape codes", null },
 		{ "no-color", 'n', 0, OptionArg.NONE, ref asciiart,

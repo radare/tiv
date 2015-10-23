@@ -1,4 +1,4 @@
-/* tiv - terminal image viewer - copyleft 2013 - pancake */
+/* tiv - terminal image viewer - copyleft 2013-2015 - pancake */
 
 #include <stdio.h>
 #include <string.h>
@@ -20,7 +20,7 @@ main(int argc, const char **argv) {
 	if (argc<2) {
 		printf ("stiv-jpeg . suckless terminal image viewer\n"
 			"Usage: stiv [image] [width] [mode]\n"
-			"Modes: [æscii,ansi,grey,256,rgb]\n");
+			"Modes: [ascii,ansi,grey,256,rgb]\n");
 		return 1;
 	}
 	selectrenderer (argc>3?argv[3]:"");

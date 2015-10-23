@@ -40,25 +40,19 @@ st              x       x       x      x
 
 Usage
 -----
+Using the Vala implementation:
 ```
-$ ./tiv  --help
-Usage:
-  tiv [OPTION...] FILE FILE .. timg
+$ ./tiv -s 40 -t img/kodim15.jpg
+```
 
-Help Options:
-  -?, --help            Show help options
+Using the suckless C implementation:
+```
+$ ./stiv-jpeg
+stiv-jpeg . suckless terminal image viewer
+Usage: stiv [image] [width] [mode]
+Modes: [ascii,ansi,grey,256,rgb]
 
-Application Options:
-  -i, --interactive     run in interactive mode
-  -s, --size            maximum square resolution for the picture in chars
-  -w, --width           fit image in console width
-  -h, --height          fit image in console height
-  -b, --brightness      -255 - 255 value to brightness (default 0)
-  -g, --grayscale       render image using grayscale ansi256
-  -a, --ansi16          render using ansi16 escape codes
-  -n, --no-color        render using just text, no escape codes
-  -0, --gotoxy00        gotoxy 0,0
-  -c, --clear           clear screen
+$ ./stiv-jpeg img/kodim15.jpg 50
 ```
 
 Example
