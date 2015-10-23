@@ -119,19 +119,15 @@ static int dorender (unsigned char *buf, int len, int w, int h) {
 
 static void selectrenderer(const char *arg) {
 	switch (arg[0]) {
-		case 'a':
-			renderer = (arg[1] == 'n')?
-				render_ansi: render_ascii;
-			break;
-		case 'g':
-			renderer = render_greyscale;
-			break;
-		case '2':
-			renderer = render_256;
-			break;
-		default:
-			renderer = render_rgb;
-			break;
+	case 'a':
+		renderer = (arg[1] == 'n')?
+			render_ansi: render_ascii;
+		break;
+	case 'g': renderer = render_greyscale; break;
+	case '2': renderer = render_256; break;
+	default:
+		renderer = render_rgb;
+		break;
 	}
 }
 
@@ -142,14 +138,13 @@ main(int argc, const char **argv) {
 	int n, x, y, w, h, imgsz, readsz;
 	if (argc<3) {
 		printf ("stiv . suckless terminal image viewer\n");
-		printf ("Usage: stiv [width] [height] [ascii|ansi|greyscale|256|rgb] < rgb24\n");
+		printf ("Usage: stiv [width] [height] [ascii|ansi|grey|256|rgb] < rgb24\n");
 		return 1;
 	}
 	w = atoi (argv[1]);
 	h = atoi (argv[2]);
 	if (argc>3) {
 		selectrenderer (argv[3]);
-
 	} else renderer = render_rgb;
 	if (w<1 || h<1) {
 		printf ("Invalid arguments\n");

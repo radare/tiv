@@ -19,7 +19,8 @@ main(int argc, const char **argv) {
 	FILE *fd;
 	if (argc<2) {
 		printf ("stiv-jpeg . suckless terminal image viewer\n"
-				"Usage: stiv [image] [width] [mode]\n");
+			"Usage: stiv [image] [width] [mode]\n"
+			"Modes: [æscii,ansi,grey,256,rgb]\n");
 		return 1;
 	}
 	selectrenderer (argc>3?argv[3]:"");
