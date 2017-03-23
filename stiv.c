@@ -101,7 +101,7 @@ render_ascii(const unsigned char *c, const unsigned char *d) {
 	printf ("%c", pal[idx]);
 }
 
-static int dorender (unsigned char *buf, int len, int w, int h) {
+static void dorender (unsigned char *buf, int len, int w, int h) {
 	unsigned char *c, *d;
 	int x, y;
 	for (y=0; y<h; y+=2) {
@@ -154,7 +154,7 @@ main(int argc, const char **argv) {
 	buf = malloc (imgsz);
 	readsz = 0;
 	do {
-		n = read (0, buf+readsz, imgsz);
+		n = read(0, buf+readsz, imgsz);
 		if (n<1) break;
 		readsz += n;
 	} while (readsz < imgsz);

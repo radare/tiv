@@ -73,6 +73,7 @@ main(int argc, const char **argv) {
 	jpeg_destroy_decompress (&cinfo);
 
 	free (buf);
+	free (p1);
 	fclose (fd);
 	return 0;
 }
