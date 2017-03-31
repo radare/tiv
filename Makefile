@@ -1,8 +1,9 @@
 VALAC=valac
 DESTDIR?=/
 PREFIX?=usr
-CFLAGS+=-I/opt/local/include -I/usr/local/include
-JPEGLIBS+=-L/opt/local/lib -L/usr/local/lib -ljpeg
+CFLAGS += -I/opt/local/include -I/usr/local/include
+JPEGLIBS += -L/opt/local/lib -L/usr/local/lib -L/usr/local/Cellar -ljpeg
+
 
 all: tiv stiv stiv-jpeg
 
@@ -16,7 +17,7 @@ tiv: tiv.vala
 	${VALAC} tiv.vala --pkg gdk-3.0 --pkg linux
 
 clean:
-	rm -f tiv stiv stiv-jpeg stiv-jpeg.static
+	rm -f tiv stiv stiv-jpeg stiv-jpeg.static stiv-jpeg.o stiv.o
 
 install:
 	cp tiv ${DESTDIR}/${PREFIX}/bin
