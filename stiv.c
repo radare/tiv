@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #define XY(b,x,y) ( b+((y)*(w*3))+(x*3) )
 #define ABS(x) (((x)<0)?-(x):(x))

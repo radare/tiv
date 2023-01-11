@@ -1,14 +1,16 @@
 VALAC=valac
 DESTDIR?=/
 PREFIX?=usr
-CFLAGS += -I/opt/local/include -I/usr/local/include
-JPEGLIBS += -L/opt/local/lib -L/usr/local/lib -L/usr/local/Cellar -ljpeg
+#CFLAGS += -I/opt/local/include -I/usr/local/include
+CFLAGS += $(shell pkg-config --cflags libjpeg)
+#JPEGLIBS += -L/opt/local/lib -L/usr/local/lib -L/usr/local/Cellar -ljpeg
+JPEGLIBS += $(shell pkg-config --libs libjpeg)
 
 
 all: tiv stiv stiv-jpeg
 
 stiv-jpeg: stiv-jpeg.o stiv.c
-	${CC} stiv-jpeg.o -o stiv-jpeg ${JPEGLIBS}
+	${CC} stiv-jpeg.o -o stiv-jpeg $(CFLAGS) ${JPEGLIBS}
 
 stiv: stiv.o
 	${CC} stiv.o -o stiv
